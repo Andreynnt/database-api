@@ -2,6 +2,7 @@ package project.rowmapper;
 
 import project.models.ForumModel;
 import org.springframework.jdbc.core.RowMapper;
+import project.models.ThreadModel;
 import project.models.UserModel;
 
 public class ApiRowMapper {
@@ -21,6 +22,18 @@ public class ApiRowMapper {
                 rs.getString("email"),
                 rs.getString("fullname"),
                 rs.getString("nickname"));
+    };
+
+    public static RowMapper<ThreadModel> getThread = (rs, rowNum) -> {
+        return new ThreadModel(
+                rs.getString("author"),
+                rs.getString("created"),
+                rs.getString("forum"),
+                rs.getInt("id"),
+                rs.getString("message"),
+                rs.getString("slug"),
+                rs.getString("title"),
+                rs.getInt("votes"));
     };
 
 }

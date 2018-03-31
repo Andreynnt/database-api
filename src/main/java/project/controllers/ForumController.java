@@ -34,4 +34,13 @@ public class ForumController {
         }
         return ResponseEntity.status(HttpStatus.CREATED).body(forum);
     }
+
+    @GetMapping(value = "/{slug}/details", produces = "application/json")
+    public ResponseEntity details(@PathVariable String slug) {
+            try {
+                return ResponseEntity.status(HttpStatus.OK).body(forumsService.getForumBySlug(slug));
+            } catch (DataAccessException exception) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ErrorModel.getMessage("NO_FORUM"));
+            }
+    }
 }

@@ -5,7 +5,6 @@ import org.springframework.stereotype.Service;
 import project.models.UserModel;
 import project.rowmapper.ApiRowMapper;
 
-import javax.validation.constraints.Null;
 import java.util.ArrayList;
 import java.util.List;
 

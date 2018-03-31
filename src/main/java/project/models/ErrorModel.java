@@ -11,8 +11,10 @@ public class ErrorModel {
         HashMap<String, String> map= new HashMap<String, String>();
 
         map.put("NO_USER", "User doesn't exist");
+        map.put("NO_FORUM", "Forum doesn't exist");
         map.put("FORUM_EXISTS", "This forum already exists");
         map.put("USER_CONFLICT", "New data conflicts with someone");
+        map.put("NO_USER_OR_FORM", "User or forum doesn't exists");
 
         return map;
     }

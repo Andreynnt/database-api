@@ -25,8 +25,7 @@ public class ForumService {
     public ForumModel getForumBySlug(String slug) {
         final String sql = "SELECT f.slug, f.title, f.threads, f.posts, " +
                 "(SELECT nickname FROM users WHERE id = f.user_id) AS nickname " +
-                "FROM forums AS f " +
-                "WHERE slug = ?";
+                "FROM forums AS f WHERE slug = ?";
         return jdbcTemplate.queryForObject(sql, ApiRowMapper.getForum, slug);
     }
 }
