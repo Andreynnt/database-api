@@ -40,7 +40,7 @@ public class UserController {
         } catch (DataAccessException exception) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ErrorModel.getMessage("NO_USER"));
         }
-        return ResponseEntity.status(HttpStatus.CREATED).body(user);
+        return ResponseEntity.status(HttpStatus.OK).body(user);
     }
 
     @PostMapping(value = "/{nickname}/profile", produces = "application/json")

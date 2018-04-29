@@ -18,23 +18,25 @@ public class UserService {
         this.jdbcTemplate = jdbcTemplate;
     }
 
+
+    //todo неправильно
     public UserModel create(UserModel user) {
         final String sql =
-            "INSERT INTO users (about, fullname, nickname, email) VALUES (?, ?, ?, ?)";
+            "INSERT INTO users (about, fullname, nickname, email) VALUES (?, ?, ?::citext, ?::citext)";
         jdbcTemplate.update(sql, user.getAbout(), user.getFullname(), user.getNickname(), user.getEmail());
         return user;
     }
 
     public List<UserModel> getSameUsers(UserModel user) {
         final String sql =
-            "SELECT about, email, fullname, nickname FROM users WHERE email = ? OR nickname = ?";
+            "SELECT about, email, fullname, nickname FROM users WHERE email = ?::citext OR nickname = ?::citext";
         List<UserModel> sameUsers =
             jdbcTemplate.query(sql, ApiRowMapper.getUser, user.getEmail(), user.getNickname());
         return sameUsers;
     }
 
     public UserModel getUser(String nickname) {
-        final String sql = "SELECT about, email, fullname, nickname FROM users WHERE nickname = ?";
+        final String sql = "SELECT about, email, fullname, nickname FROM users WHERE nickname = ?::citext";
         return  jdbcTemplate.queryForObject(sql, ApiRowMapper.getUser, nickname);
     }
 
@@ -49,17 +51,17 @@ public class UserService {
         }
 
         if (user.getEmail() != null) {
-            sql += " email = ? ,";
+            sql += " email = ?::citext,";
             values.add(user.getEmail());
         }
 
         if (user.getFullname() != null) {
-            sql += " fullname = ? ,";
+            sql += " fullname = ?,";
             values.add(user.getFullname());
         }
 
         if (user.getNickname() != null) {
-            sql += " nickname = ? ,";
+            sql += " nickname = ?::citext,";
             values.add(user.getNickname());
         }
 
@@ -68,7 +70,7 @@ public class UserService {
         }
 
         sql = sql.substring(0, sql.length() - 1);
-        sql += " WHERE nickname = ?";
+        sql += " WHERE nickname = ?::citext";
         values.add(nickname);
         jdbcTemplate.update(sql, values.toArray());
 
@@ -77,6 +79,11 @@ public class UserService {
         }
 
         return getUser(nickname);
+    }
+
+    public Integer getIdByName(String name) {
+        String sql = "SELECT id FROM users WHERE nickname = ?::citext";
+        return jdbcTemplate.queryForObject(sql, Integer.class, name);
     }
 
 }

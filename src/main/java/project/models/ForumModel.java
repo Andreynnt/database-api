@@ -1,26 +1,32 @@
 package project.models;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.Optional;
 
 public class ForumModel {
 
-    private Long posts;
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private Integer posts;
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     private String slug;
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     private Integer threads;
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     private String title;
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     private String user;
 
     @JsonCreator
-    public ForumModel(@JsonProperty("posts") Long posts,
+    public ForumModel(@JsonProperty("posts") Integer posts,
                       @JsonProperty("slug") String slug,
                       @JsonProperty("threads") Integer threads,
                       @JsonProperty("title") String title,
                       @JsonProperty("user") String user) {
-        this.posts = Optional.ofNullable(posts).orElse(0L);
-        this.threads = Optional.ofNullable(threads).orElse(0);
+        this.posts = posts;
+        this.threads = threads;
         this.slug = slug;
         this.title = title;
         this.user = user;
@@ -58,11 +64,11 @@ public class ForumModel {
         this.slug = slug;
     }
 
-    public Long getPosts() {
+    public Integer getPosts() {
         return posts;
     }
 
-    public void setPosts(Long posts) {
+    public void setPosts(Integer posts) {
         this.posts = posts;
     }
 }

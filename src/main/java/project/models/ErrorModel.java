@@ -15,7 +15,10 @@ public class ErrorModel {
         map.put("FORUM_EXISTS", "This forum already exists");
         map.put("USER_CONFLICT", "New data conflicts with someone");
         map.put("NO_USER_OR_FORM", "User or forum doesn't exists");
-
+        map.put("ERROR", "Something goes wrong");
+        map.put("NO_THREAD", "Thread doesn't exist");
+        map.put("NO_PARENT", "Someone's parent doesn't exist");
+        map.put("NO_POST", "No post with this id");
         return map;
     }
 
