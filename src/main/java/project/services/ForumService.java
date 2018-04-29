@@ -61,54 +61,6 @@ public class ForumService {
     }
 
 
-    private String addParamsForGetUsers(Integer forumID, ArrayList<Object> queryParams, Integer limit, String since, Boolean desc) {
-        String sql;
-        if (since != null) {
-            if (desc != null && desc) {
-                sql = "SELECT u.about, u.email, u.fullname, u.nickname FROM " +
-                        " users u JOIN threads t ON t.author_id = u.id AND t.forum_id = ? AND nickname < ?::citext" +
-                        " UNION DISTINCT" +
-                        " SELECT u.about, u.email, u.fullname, u.nickname FROM " +
-                        " users u JOIN posts p ON u.id = p.user_id AND p.forum_id = ? AND nickname < ?::citext";
-                queryParams.add(forumID);
-                queryParams.add(since);
-                queryParams.add(forumID);
-                queryParams.add(since);
-            } else {
-                sql = "SELECT u.about, u.email, u.fullname, u.nickname FROM " +
-                        " users u JOIN threads t ON t.author_id = u.id AND t.forum_id = ? AND nickname > ?::citext" +
-                        " UNION DISTINCT" +
-                        " SELECT u.about, u.email, u.fullname, u.nickname FROM " +
-                        " users u JOIN posts p ON u.id = p.user_id AND p.forum_id = ? AND nickname > ?::citext";
-                queryParams.add(forumID);
-                queryParams.add(since);
-                queryParams.add(forumID);
-                queryParams.add(since);
-            }
-        } else {
-            sql = "SELECT u.about, u.email, u.fullname, u.nickname FROM " +
-                    " users u JOIN threads t ON t.author_id = u.id AND t.forum_id = ?" +
-                    " UNION DISTINCT" +
-                    " SELECT u.about, u.email, u.fullname, u.nickname FROM " +
-                    " users u JOIN posts p ON u.id = p.user_id AND p.forum_id = ?";
-            queryParams.add(forumID);
-            queryParams.add(forumID);
-        }
-
-        if (desc != null && desc) {
-            sql += " ORDER BY nickname DESC";
-        } else {
-            sql += " ORDER BY nickname ASC";
-        }
-
-        if (limit != null) {
-            sql += " LIMIT ?";
-            queryParams.add(limit);
-        }
-        return sql;
-    }
-
-
     public List<ThreadModel> getThreads(String slug, Integer limit, String since, Boolean desc) {
         ArrayList<Object> queryParams = new ArrayList<>();
         String sql = "SELECT (SELECT nickname FROM users WHERE id = t.author_id) AS author, created, " +
@@ -126,11 +78,50 @@ public class ForumService {
     }
 
 
+    //TO FO
     public List<UserModel> getUsers(String slug, Integer limit, String since, Boolean desc) {
         Integer forumID = getIdBySLug(slug);
-        ArrayList<Object> queryParams = new ArrayList<>();
-        String sql = this.addParamsForGetUsers(forumID, queryParams, limit, since, desc);
-        return jdbcTemplate.query(sql, ApiRowMapper.getUser, queryParams.toArray());
+        List<Object> args = new ArrayList<>();
+
+        String sql = "select distinct u.nickname, u.about, u.email, u.fullname " +
+                "from users u join posts p on p.user_id = u.id and p.forum_id = ? ";
+        args.add(forumID);
+
+        if (since != null) {
+            if (desc != null && desc) {
+                sql += " and nickname < ?::citext ";
+            } else {
+                //если нет desc то у меня сортировка по убыванию
+                sql += " and nickname > ?::citext ";
+            }
+            args.add(since);
+        }
+
+        sql += " union ";
+        sql += " select distinct users.nickname,  users.about, users.email, users.fullname FROM users  join threads th on th.author_id = users.id  and th.forum_id=?";
+        args.add(forumID);
+
+        if (since != null) {
+            if (desc != null && desc) {
+                sql += " and nickname < ?::citext ";
+            } else {
+                //если нет desc то у меня сортировка по убыванию
+                sql += "  and nickname > ?::citext ";
+            }
+            args.add(since);
+        }
+
+        sql += " order by nickname";
+        if (desc != null && desc != false) {
+            sql += " desc ";
+        }
+
+        if (limit != null) {
+            sql += " limit ? ";
+            args.add(limit);
+        }
+
+        return jdbcTemplate.query(sql, ApiRowMapper.getUser, args.toArray());
     }
 
 
