@@ -19,7 +19,7 @@ USER postgres
 # then create a database `docker` owned by the ``docker`` role.
 RUN /etc/init.d/postgresql start &&\
     psql --command "CREATE USER docker WITH SUPERUSER PASSWORD 'docker';" &&\
-   createdb -E UTF8 -T template0 -O docker docker &&\
+    createdb -E UTF8 -T template0 -O docker docker &&\
     /etc/init.d/postgresql stop
 
 # Adjust PostgreSQL configuration so that remote connections to the
@@ -43,17 +43,18 @@ USER root
 
 # Установка JDK
 RUN apt-get install -y openjdk-9-jdk-headless
+RUN apt-get install -y maven
 
-USER root
 
 # Копируем исходный код в Docker-контейнер
-ENV WORK /opt/api
+ENV WORK /opt/
 ADD / $WORK/
 
 
 # Собираем и устанавливаем пакет
-WORKDIR $WORK/
-RUN ./mvnw clean package -DskipTests
+WORKDIR $WORK
+RUN mvn package
+
 
 # Объявлем порт сервера
 EXPOSE 5000
@@ -61,4 +62,4 @@ EXPOSE 5000
 #
 # Запускаем PostgreSQL и сервер
 #
-CMD java -Xmx300M -Xmx300M -jar $WORK/target/forum.jar
+CMD service postgresql start && java -Xmx300M -Xmx300M -jar $WORK/target/forum.jar
