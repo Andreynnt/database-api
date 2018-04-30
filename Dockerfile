@@ -47,12 +47,12 @@ RUN apt-get install -y openjdk-9-jdk-headless
 USER root
 
 # Копируем исходный код в Docker-контейнер
-ENV WORK /opt/api
+ENV WORK /opt/
 ADD / $WORK/
 
 
 # Собираем и устанавливаем пакет
-WORKDIR $WORK/
+WORKDIR $WORK
 RUN ./mvnw clean package -DskipTests
 
 # Объявлем порт сервера
@@ -61,4 +61,4 @@ EXPOSE 5000
 #
 # Запускаем PostgreSQL и сервер
 #
-CMD java -Xmx300M -Xmx300M -jar $WORK/target/forum.jar
+CMD service postgresql start && java -Xmx300M -Xmx300M -jar $WORK/target/forum.jar
