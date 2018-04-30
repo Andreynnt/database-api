@@ -19,7 +19,6 @@ USER postgres
 # then create a database `docker` owned by the ``docker`` role.
 RUN /etc/init.d/postgresql start &&\
     psql --command "CREATE USER docker WITH SUPERUSER PASSWORD 'docker';" &&\
-    psql -d forum -c "CREATE EXTENSION IF NOT EXISTS citext;" &&\
     createdb -O docker docker &&\
     /etc/init.d/postgresql stop
 
