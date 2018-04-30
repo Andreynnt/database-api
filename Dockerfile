@@ -43,8 +43,8 @@ USER root
 
 # Установка JDK
 RUN apt-get install -y openjdk-9-jdk-headless
+RUN apt-get install -y maven
 
-USER root
 
 # Копируем исходный код в Docker-контейнер
 ENV WORK /opt/
@@ -53,7 +53,8 @@ ADD / $WORK/
 
 # Собираем и устанавливаем пакет
 WORKDIR $WORK
-RUN ./mvnw clean package -DskipTests
+RUN mvn package
+
 
 # Объявлем порт сервера
 EXPOSE 5000
