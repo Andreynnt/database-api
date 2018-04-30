@@ -20,7 +20,6 @@ USER postgres
 RUN /etc/init.d/postgresql start &&\
     psql --command "CREATE USER docker WITH SUPERUSER PASSWORD 'docker';" &&\
     createdb -O docker docker &&\
-    psql -d docker -c "CREATE EXTENSION IF NOT EXISTS citext;" &&\
     /etc/init.d/postgresql stop
 
 # Adjust PostgreSQL configuration so that remote connections to the
