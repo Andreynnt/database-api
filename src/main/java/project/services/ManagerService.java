@@ -27,6 +27,7 @@ public class ManagerService {
         jdbcTemplate.execute("DELETE FROM posts");
         jdbcTemplate.execute("DELETE FROM threads");
         jdbcTemplate.execute("DELETE FROM forums");
+        jdbcTemplate.execute("DELETE FROM votes");
     }
 
 }
