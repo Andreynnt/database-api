@@ -3,7 +3,6 @@ package project.services;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import project.models.UserModel;
-import project.rowmapper.ApiRowMapper;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,8 +21,8 @@ public class UserService {
     //todo неправильно
     public UserModel create(UserModel user) {
         final String sql =
-            "INSERT INTO users (about, fullname, nickname, email) VALUES (?, ?, ?::citext, ?::citext)";
-        jdbcTemplate.update(sql, user.getAbout(), user.getFullname(), user.getNickname(), user.getEmail());
+            "INSERT INTO users (fullname, about, nickname, email) VALUES (?, ?, ?::citext, ?::citext)";
+        jdbcTemplate.update(sql, user.getFullname(), user.getAbout(), user.getNickname(), user.getEmail());
         return user;
     }
 
@@ -31,13 +30,13 @@ public class UserService {
         final String sql =
             "SELECT about, email, fullname, nickname FROM users WHERE email = ?::citext OR nickname = ?::citext";
         List<UserModel> sameUsers =
-            jdbcTemplate.query(sql, ApiRowMapper.getUser, user.getEmail(), user.getNickname());
+            jdbcTemplate.query(sql, UserModel::getUser, user.getEmail(), user.getNickname());
         return sameUsers;
     }
 
     public UserModel getUser(String nickname) {
         final String sql = "SELECT about, email, fullname, nickname FROM users WHERE nickname = ?::citext";
-        return  jdbcTemplate.queryForObject(sql, ApiRowMapper.getUser, nickname);
+        return jdbcTemplate.queryForObject(sql, UserModel::getUser, nickname);
     }
 
 

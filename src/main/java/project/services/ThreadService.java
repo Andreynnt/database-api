@@ -3,13 +3,10 @@ package project.services;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
-import project.models.PostModel;
 import project.models.ThreadModel;
 import project.models.VoteModel;
-import project.rowmapper.ApiRowMapper;
 
 import java.util.ArrayList;
-import java.util.List;
 
 
 @Service
@@ -58,7 +55,7 @@ public class ThreadService {
             "created, id, message, slug, title, votes FROM threads " +
             "WHERE  slug = ?::citext";
 
-        return jdbcTemplate.queryForObject(sql, ApiRowMapper.getThread, thread.getAuthor(), forumSlug, thread.getSlug());
+        return jdbcTemplate.queryForObject(sql, ThreadModel::getThread, thread.getAuthor(), forumSlug, thread.getSlug());
     }
 
 
@@ -100,26 +97,31 @@ public class ThreadService {
 
     public ThreadModel getById(Integer id) {
         String sql = "SELECT * FROM threads WHERE id = ?";
-        return jdbcTemplate.queryForObject(sql, ApiRowMapper.getThread, id);
+        return jdbcTemplate.queryForObject(sql, ThreadModel::getThread, id);
     }
 
     public ThreadModel getBySlug(String slug) {
         String sql = "SELECT * FROM threads WHERE slug = ?";
-        return jdbcTemplate.queryForObject(sql, ApiRowMapper.getThread, slug);
+        return jdbcTemplate.queryForObject(sql, ThreadModel::getThread, slug);
     }
 
 
     public ThreadModel getFullById(Integer id) {
-        final String sql = "SELECT *, (SELECT nickname FROM users u WHERE t.author_id = u.id) as author, " +
-                "(SELECT slug FROM forums f WHERE t.forum_id = f.id) as forum FROM threads t WHERE id = ?";
-        return jdbcTemplate.queryForObject(sql, ApiRowMapper.getThread, id);
+        final String sql =
+                "SELECT *, " +
+                "(SELECT slug FROM forums f WHERE t.forum_id = f.id) as forum, " +
+                "(SELECT nickname FROM users u WHERE t.author_id = u.id) as author FROM threads t WHERE id = ?";
+        return jdbcTemplate.queryForObject(sql, ThreadModel::getThread, id);
     }
 
 
     public ThreadModel getFullBySlug(String slug) {
-        final String sql = "SELECT *, (SELECT nickname FROM users u WHERE t.author_id = u.id) as author, " +
-            "(SELECT slug FROM forums f WHERE t.forum_id = f.id) as forum FROM threads t WHERE slug = ?::citext";
-        return jdbcTemplate.queryForObject(sql, ApiRowMapper.getThread, slug);
+        final String sql =
+            "SELECT *, " +
+            "(SELECT slug FROM forums f WHERE t.forum_id = f.id) as forum, " +
+            " (SELECT nickname FROM users u WHERE t.author_id = u.id) as author" +
+            " FROM threads t WHERE slug = ?::citext";
+        return jdbcTemplate.queryForObject(sql, ThreadModel::getThread, slug);
     }
 
 
@@ -160,7 +162,6 @@ public class ThreadService {
         params.add(oldThread.getId());
 
         jdbcTemplate.update(sql.toString(), params.toArray());
-        //todo можно
         return getFullById(oldThread.getId());
     }
 
@@ -175,25 +176,22 @@ public class ThreadService {
 
     //todo Слишком много подзапросов ?
     public ThreadModel updateVotes(VoteModel vote, String slugOrId) {
-
         ThreadModel thread = this.getFullBySlugOrId(slugOrId);
         Integer userId =
             jdbcTemplate.queryForObject("SELECT id FROM users WHERE nickname = ?", Integer.class, vote.getNickname());
-
         Integer oldVoteValue;
 
         try {
             oldVoteValue = this.getVoteValue(thread.getId(), userId);
         } catch (DataAccessException exception) {
             //Юзер еще не голосовал за этот тред
-            jdbcTemplate.update("INSERT INTO votes(user_id, thread_id, voice) VALUES (?, ?, ?)",
-                    userId, thread.getId(), vote.getVoice());
+            jdbcTemplate.update("INSERT INTO votes(user_id, voice, thread_id) VALUES (?, ?, ?)",
+                    userId, vote.getVoice(), thread.getId());
 
             jdbcTemplate.update("UPDATE threads SET votes = (SELECT SUM(voice) FROM votes" +
                     " WHERE thread_id = ?) WHERE id = ?", thread.getId(), thread.getId());
             return this.getFullBySlugOrId(slugOrId);
         }
-
 
         //Хочет тоже самое поставить
         if (oldVoteValue.equals(vote.getVoice())) {
@@ -201,7 +199,7 @@ public class ThreadService {
         }
 
         jdbcTemplate.update("UPDATE votes SET voice = ?" +
-                "WHERE user_id = ? AND thread_id = ?", vote.getVoice(), userId, thread.getId());
+                "WHERE thread_id = ? AND user_id = ?", vote.getVoice(), thread.getId(), userId);
 
         jdbcTemplate.update("UPDATE threads SET votes = (SELECT SUM(voice) FROM votes" +
                 " WHERE thread_id = ?) WHERE id = ?", thread.getId(), thread.getId());

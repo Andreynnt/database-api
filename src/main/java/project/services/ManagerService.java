@@ -3,7 +3,6 @@ package project.services;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import project.models.DatabaseModel;
 
 @Service
