@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Optional;
 
 public class ForumModel {
@@ -70,5 +72,14 @@ public class ForumModel {
 
     public void setPosts(Integer posts) {
         this.posts = posts;
+    }
+
+    public static ForumModel getForum(ResultSet rs, int amount) throws SQLException {
+        return new ForumModel(
+                rs.getInt("posts"),
+                rs.getString("slug"),
+                rs.getInt("threads"),
+                rs.getString("title"),
+                rs.getString("nickname"));
     }
 }

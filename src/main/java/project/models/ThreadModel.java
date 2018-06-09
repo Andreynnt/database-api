@@ -4,6 +4,12 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
+import java.util.TimeZone;
+
 public class ThreadModel {
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -105,5 +111,21 @@ public class ThreadModel {
 
     public void setVotes(Integer votes) {
         this.votes = votes;
+    }
+
+    public static ThreadModel getThread(ResultSet rs, int amount) throws SQLException {
+        final Timestamp timestamp = rs.getTimestamp("created");
+        final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+        dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+
+        return new ThreadModel(
+                rs.getString("author"),
+                dateFormat.format(timestamp.getTime()),
+                rs.getString("forum"),
+                rs.getInt("id"),
+                rs.getString("message"),
+                rs.getString("slug"),
+                rs.getString("title"),
+                rs.getInt("votes"));
     }
 }

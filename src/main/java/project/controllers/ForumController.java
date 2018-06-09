@@ -12,7 +12,6 @@ import project.models.ThreadModel;
 import project.models.UserModel;
 import project.services.ForumService;
 
-import java.util.ArrayList;
 import java.util.List;
 
 
@@ -39,15 +38,6 @@ public class ForumController {
         return ResponseEntity.status(HttpStatus.CREATED).body(forumsService.getForumBySlug(forum.getSlug()));
     }
 
-    @GetMapping(value = "/forum/{slug}/details", produces = "application/json")
-    public ResponseEntity details(@PathVariable String slug) {
-            try {
-                return ResponseEntity.status(HttpStatus.OK).body(forumsService.getForumBySlug(slug));
-            } catch (DataAccessException exception) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ErrorModel.getMessage("NO_FORUM"));
-            }
-    }
-
     @GetMapping(value = "/forum/{slug}/threads", produces = "application/json")
     public ResponseEntity threads(@PathVariable String slug,
                                   @RequestParam(value = "limit", required = false) Integer limit,
@@ -55,18 +45,24 @@ public class ForumController {
                                   @RequestParam(value = "desc", required = false) Boolean desc) {
             try {
                 List<ThreadModel> threads = forumsService.getThreads(slug, limit, since, desc);
-
                 //todo убрать эту проверку
                 if (threads.isEmpty()) {
                     forumsService.getForumBySlug(slug);
                 }
-
                 return ResponseEntity.status(HttpStatus.OK).body(threads);
             } catch (DataAccessException exception) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ErrorModel.getMessage("NO_FORUM"));
             }
     }
 
+    @GetMapping(value = "/forum/{slug}/details", produces = "application/json")
+    public ResponseEntity details(@PathVariable String slug) {
+        try {
+            return ResponseEntity.status(HttpStatus.OK).body(forumsService.getForumBySlug(slug));
+        } catch (DataAccessException exception) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ErrorModel.getMessage("NO_FORUM"));
+        }
+    }
 
     @GetMapping(value = "/forum/{slug}/users", produces = "application/json")
     public ResponseEntity users(@PathVariable String slug,

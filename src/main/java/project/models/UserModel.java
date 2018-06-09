@@ -4,6 +4,9 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
 public class UserModel {
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -60,4 +63,11 @@ public class UserModel {
         return nickname;
     }
 
+    public static UserModel getUser(ResultSet rs, int amount) throws SQLException {
+        return new UserModel(
+                rs.getString("about"),
+                rs.getString("email"),
+                rs.getString("fullname"),
+                rs.getString("nickname"));
+    }
 }
