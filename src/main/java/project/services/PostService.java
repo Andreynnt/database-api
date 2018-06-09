@@ -8,14 +8,12 @@ import org.springframework.transaction.annotation.Transactional;
 import project.models.PostFullModel;
 import project.models.PostModel;
 import project.models.ThreadModel;
-import project.rowmapper.ApiRowMapper;
 
 import java.sql.Array;
 import java.sql.SQLException;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import static java.util.Collections.EMPTY_LIST;
@@ -47,12 +45,6 @@ public class PostService {
         String sql = "SELECT path FROM posts WHERE id = ?";
         return  jdbcTemplate.queryForObject(sql, Array.class, id);
     }
-
-    private Integer generateId() {
-        return jdbcTemplate.
-            queryForObject("SELECT nextval(pg_get_serial_sequence('posts', 'id'))", Integer.class);
-    }
-
 
     @Transactional(rollbackFor = Exception.class)
     public List<PostModel> create(List<PostModel> posts, String slug_or_id) {
@@ -86,12 +78,12 @@ public class PostService {
             }
 
             Array path = null;
-
             post.setThread(thread.getId());
             post.setForum(forumSlug);
             post.setCreated(currentTime);
 
-            final Integer generatedID = this.generateId();
+            final Integer generatedID =
+                jdbcTemplate.queryForObject("SELECT nextval(pg_get_serial_sequence('posts', 'id'))", Integer.class);
             Integer rootID;
 
             if (parentID != 0) {
@@ -125,17 +117,18 @@ public class PostService {
 
 
     private PostModel getPost(Integer id) {
-        final String sql = "SELECT (SELECT nickname from users WHERE id = p.user_id) as author, " +
-                " (SELECT slug FROM Forums WHERE id = p.forum_id) as forum, " +
-                " created, id, message, parent, is_edited as isEdited, thread_id as thread " +
-                " FROM posts p where id = ?";
-        return jdbcTemplate.queryForObject(sql, ApiRowMapper.getPost, id);
+        final String sql =
+            "SELECT (SELECT nickname from users WHERE id = p.user_id) as author, " +
+            " (SELECT slug FROM Forums WHERE id = p.forum_id) as forum, " +
+            " created, id, thread_id as thread, message, parent, is_edited as isEdited" +
+            " FROM posts p where id = ?";
+        return jdbcTemplate.queryForObject(sql, PostModel::getPost, id);
     }
 
 
     public PostModel updatePost(PostModel post, Integer id) {
         final String oldMessage = this.getPostMessage(id);
-        final String sql = "UPDATE posts SET message = ?, is_edited = TRUE WHERE id = ?";
+        final String sql = "UPDATE posts SET is_edited = TRUE, message = ? WHERE id = ?";
 
         if (post.getMessage() == null) {
            return getPost(id);
@@ -152,19 +145,18 @@ public class PostService {
 
     public PostFullModel getFullPost(Integer id, List<String> related) {
         String sql =
-        "SELECT (SELECT nickname from users WHERE id = p.user_id) as author," +
-        " (SELECT slug FROM forums WHERE id = p.forum_id) as forum, " +
-        " created, id, is_edited as isEdited, message, parent," +
+        "SELECT " +
+        "(SELECT slug FROM forums WHERE id = p.forum_id) as forum, " +
+        "(SELECT nickname from users WHERE id = p.user_id) as author," +
+        " created, id, message, parent, is_edited as isEdited, " +
         " thread_id as thread " +
         " FROM posts p WHERE id = ?";
 
-        final PostModel post = jdbcTemplate.queryForObject(sql, ApiRowMapper.getPost, id);
+        final PostModel post = jdbcTemplate.queryForObject(sql, PostModel::getPost, id);
         final PostFullModel fullData = new PostFullModel(post);
-
         if (related == null) {
             return fullData;
         }
-
         if (related.contains("forum")) {
             fullData.setForum(forumService.getForumBySlug(post.getForum()));
         }
@@ -174,7 +166,6 @@ public class PostService {
         if (related.contains("thread")) {
             fullData.setThread(threadService.getFullById(post.getThread()));
         }
-
         return fullData;
     }
 
@@ -200,10 +191,10 @@ public class PostService {
 
     private String getCarcassStringForSort(String slugOrId, ArrayList<Object> queryParams) {
         String sql =
-                " SELECT u.nickname as author, p.created, f.slug as forum, p.id," +
-                " p.is_edited as isEdited, p.message, p.parent, p.thread_id as thread" +
-                " FROM posts p JOIN forums f on p.forum_id = f.id JOIN users u ON p.user_id = u.id" +
-                " WHERE thread_id = ? ";
+            " SELECT u.nickname as author, p.created, p.parent, f.slug as forum, p.id," +
+            " p.is_edited as isEdited, p.message, p.thread_id as thread" +
+            " FROM posts p JOIN forums f ON p.forum_id = f.id JOIN users u ON p.user_id = u.id" +
+            " WHERE thread_id = ? ";
         Integer threadId = threadService.getIdBySlugOrId(slugOrId);
         queryParams.add(threadId);
         return sql;
@@ -233,7 +224,7 @@ public class PostService {
             sql += " LIMIT ?";
             queryParams.add(limit);
         }
-        return jdbcTemplate.query(sql, ApiRowMapper.getPost, queryParams.toArray());
+        return jdbcTemplate.query(sql, PostModel::getPost, queryParams.toArray());
     }
 
 
@@ -261,7 +252,7 @@ public class PostService {
             sql += " LIMIT ?";
             queryParams.add(limit);
         }
-        return jdbcTemplate.query(sql, ApiRowMapper.getPost, queryParams.toArray());
+        return jdbcTemplate.query(sql, PostModel::getPost, queryParams.toArray());
     }
 
 
@@ -312,7 +303,6 @@ public class PostService {
 
     private List<PostModel> parentTreeSort(String slugOrId, Integer limit, Integer since, String sort, Boolean desc) {
         Integer threadId = threadService.getIdBySlugOrId(slugOrId);
-
         String rootsSqlArray = this.getRootsId(threadId, limit, since, desc);
 
         if (rootsSqlArray == null) {
@@ -332,8 +322,7 @@ public class PostService {
         } else {
             sql += " p.root_id ASC, p.path";
         }
-
-        return jdbcTemplate.query(sql, ApiRowMapper.getPost);
+        return jdbcTemplate.query(sql, PostModel::getPost);
     }
 
 }

@@ -21,6 +21,19 @@ public class PostController {
         this.postService = postService;
     }
 
+    @GetMapping(value = "/thread/{slug_or_id}/posts", produces = "application/json")
+    public ResponseEntity getSortedPosts(@PathVariable String slug_or_id,
+                                         @RequestParam(value = "limit", required = false) Integer limit,
+                                         @RequestParam(value = "sort", required = false) String sort,
+                                         @RequestParam(value = "since", required = false) Integer since,
+                                         @RequestParam(value = "desc", required = false) Boolean desc) {
+        try {
+            return ResponseEntity.status(HttpStatus.OK).body(postService.getSortedPosts(slug_or_id, limit, since, sort, desc));
+        } catch (DataAccessException exception) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ErrorModel.getMessage("NO_THREAD"));
+        }
+    }
+
     @PostMapping(value = "/post/{id}/details", produces = "application/json")
     public ResponseEntity changePost(@RequestBody PostModel post, @PathVariable Integer id) {
         try {
@@ -39,20 +52,4 @@ public class PostController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ErrorModel.getMessage("NO_POST"));
         }
     }
-
-    @GetMapping(value = "/thread/{slug_or_id}/posts", produces = "application/json")
-    public ResponseEntity getSortedPosts(@PathVariable String slug_or_id,
-                                         @RequestParam(value = "limit", required = false) Integer limit,
-                                         @RequestParam(value = "since", required = false) Integer since,
-                                         @RequestParam(value = "sort", required = false) String sort,
-                                         @RequestParam(value = "desc", required = false) Boolean desc) {
-        try {
-            return ResponseEntity.status(HttpStatus.OK).body(postService.getSortedPosts(slug_or_id, limit, since, sort, desc));
-        } catch (DataAccessException exception) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ErrorModel.getMessage("NO_THREAD"));
-        }
-    }
-
 }
-
-
