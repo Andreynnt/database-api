@@ -126,9 +126,18 @@ public class ForumService {
         return jdbcTemplate.queryForObject(sql, String.class, id);
     }
 
+    public Integer getIdBySlug(String slug) {
+        String sql = "SELECT id FROM forums WHERE slug = ?";
+        return jdbcTemplate.queryForObject(sql, Integer.class, slug);
+    }
 
     public void incrementPosts(Integer forumID) {
-        final String sqlUpdatePostCount = "UPDATE Forums SET posts = posts + 1 WHERE id = ?";
+        final String sqlUpdatePostCount = "UPDATE forums SET posts = posts + 1 WHERE id = ?";
         jdbcTemplate.update(sqlUpdatePostCount, forumID);
+    }
+
+    public void increasePostsAmount(Integer forumID, Integer size) {
+        final String sqlUpdatePostCount = "UPDATE forums SET posts = posts + ? WHERE id = ?";
+        jdbcTemplate.update(sqlUpdatePostCount, size, forumID);
     }
 }

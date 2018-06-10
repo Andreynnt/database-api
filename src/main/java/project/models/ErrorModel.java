@@ -19,6 +19,7 @@ public class ErrorModel {
         map.put("NO_THREAD", "Thread doesn't exist");
         map.put("NO_PARENT", "Someone's parent doesn't exist");
         map.put("NO_POST", "No post with this id");
+        map.put("ERROR_IN_CREATE2", "ERROR_IN_CREATE2");
         return map;
     }
 

@@ -205,4 +205,9 @@ public class ThreadService {
                 " WHERE thread_id = ?) WHERE id = ?", thread.getId(), thread.getId());
         return this.getFullBySlugOrId(slugOrId);
     }
+
+    public Integer gerForumIdByThreadID(Integer threadId) {
+        String sql = "SELECT forum_id FROM threads WHERE id = ?";
+        return jdbcTemplate.queryForObject(sql, Integer.class, threadId);
+    }
 }

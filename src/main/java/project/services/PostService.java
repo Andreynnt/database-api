@@ -2,6 +2,7 @@ package project.services;
 
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -10,6 +11,7 @@ import project.models.PostModel;
 import project.models.ThreadModel;
 
 import java.sql.Array;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -36,7 +38,7 @@ public class PostService {
 
 
 
-    private Integer getParent(Integer threadID, Integer parentID) {
+    public Integer getParent(Integer threadID, Integer parentID) {
         String sql = "SELECT id FROM posts WHERE thread_id = ? AND id = ?";
         return jdbcTemplate.queryForObject(sql, Integer.class, threadID, parentID);
     }
@@ -107,6 +109,48 @@ public class PostService {
             forumService.incrementPosts(forumID);
         }
         return posts;
+    }
+
+
+    public void create2(List<PostModel> posts) {
+        final String sql =
+            "INSERT INTO posts (id, user_id, created, forum_id, message, parent, thread_id, path, root_id)" +
+            " VALUES(?, ?, ?::TIMESTAMPTZ, ?, ?, ?, ?, array_append(?, ?::INTEGER), ?)";
+
+        jdbcTemplate.batchUpdate(sql, new BatchPreparedStatementSetter() {
+            @Override
+            public void setValues(PreparedStatement pst, int i) throws SQLException {
+                final Integer postId = getNextPostId();
+                posts.get(i).setId(postId);
+
+                pst.setInt(1, posts.get(i).getId());
+                pst.setInt(2, posts.get(i).getAuthorId());
+                pst.setString(3, posts.get(i).getCreated());
+                pst.setInt(4, posts.get(i).getForumId());
+                pst.setString(5, posts.get(i).getMessage());
+                pst.setInt(6, posts.get(i).getParent());
+                pst.setInt(7, posts.get(i).getThread());
+
+                Integer idOfParent = posts.get(i).getParent();
+                final Array path = idOfParent == 0 ? null : jdbcTemplate.queryForObject("SELECT path FROM posts WHERE id = ?", Array.class, idOfParent);
+                Integer rootId;
+                try {
+                    rootId = idOfParent == 0 ? postId : ((Integer[]) path.getArray())[0];
+                } catch (SQLException e) {
+                    rootId = postId;
+                }
+                pst.setArray(8, path);
+                pst.setInt(9, postId);
+                pst.setInt(10, rootId);
+            }
+
+            @Override
+            public int getBatchSize() {
+                return posts.size();
+            }
+        });
+
+        forumService.increasePostsAmount(posts.get(0).getForumId(), posts.size());
     }
 
 
@@ -227,6 +271,10 @@ public class PostService {
         return jdbcTemplate.query(sql, PostModel::getPost, queryParams.toArray());
     }
 
+    public Integer getNextPostId() {
+        final String sqlGetNext = "SELECT nextval(pg_get_serial_sequence('posts', 'id'))";
+        return jdbcTemplate.queryForObject(sqlGetNext, Integer.class);
+    }
 
     private List<PostModel> treeSort(String slugOrId, Integer limit, Integer since, Boolean desc) {
         final ArrayList<Object> queryParams = new ArrayList<>();

@@ -27,6 +27,11 @@ public class PostModel {
     private Integer parent;
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private Integer thread;
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private Integer authorId;
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private Integer forumId;
+
 
 
     @JsonCreator
@@ -133,4 +138,19 @@ public class PostModel {
         );
     }
 
+    public Integer getAuthorId() {
+        return authorId;
+    }
+
+    public void setAuthorId(Integer authorId) {
+        this.authorId = authorId;
+    }
+
+    public Integer getForumId() {
+        return forumId;
+    }
+
+    public void setForumId(Integer forumId) {
+        this.forumId = forumId;
+    }
 }
