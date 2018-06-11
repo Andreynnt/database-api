@@ -70,7 +70,7 @@ public class ForumController {
                                 @RequestParam(value = "since", required = false) String since,
                                 @RequestParam(value = "desc", required = false) Boolean desc) {
         try {
-            List<UserModel> users = forumsService.getUsers(slug, limit, since, desc);
+            List<UserModel> users = forumsService.getUsers(slug, since, desc, limit);
             return ResponseEntity.status(HttpStatus.OK).body(users);
         } catch (DataAccessException exception) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ErrorModel.getMessage("ERROR"));

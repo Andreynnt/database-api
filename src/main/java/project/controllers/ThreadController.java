@@ -15,6 +15,7 @@ import project.services.UserService;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 @RestController
 @RequestMapping("/api")
@@ -41,10 +42,11 @@ public class ThreadController {
             tr = threadService.create(thread, forumSlug);
         } catch (DuplicateKeyException exception) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(threadService.getFullBySlug(thread.getSlug()));
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(ErrorModel.getMessage("NO_USER_OR_FORM"));
         } catch (DataAccessException exception) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ErrorModel.getMessage("NO_USER_OR_FORM"));
         }
-        threadService.incrementForumThreads(forumSlug);
         return ResponseEntity.status(HttpStatus.CREATED).body(tr);
     }
 

@@ -48,71 +48,6 @@ public class PostService {
         return  jdbcTemplate.queryForObject(sql, Array.class, id);
     }
 
-    @Transactional(rollbackFor = Exception.class)
-    public List<PostModel> create(List<PostModel> posts, String slug_or_id) {
-        final String sql =
-            "INSERT INTO posts (id, user_id, created, forum_id, message," +
-            " parent, thread_id, path, root_id)" +
-            " VALUES(?, ?, ?::TIMESTAMPTZ, ?, ?, ?, ?, array_append(?, ?::INTEGER), ?)";
-
-        final ThreadModel thread;
-        if (slug_or_id.matches("\\d+")) {
-            thread = threadService.getFullById(Integer.parseInt(slug_or_id));
-        } else {
-            thread = threadService.getFullBySlug(slug_or_id);
-        }
-
-        final String currentTime = ZonedDateTime.now()
-                .format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"));
-        final Integer forumID = threadService.getForumIdBySlug(thread.getSlug());
-        final String forumSlug = forumService.getSlugById(forumID);
-
-        for (PostModel post : posts) {
-            Integer parentID;
-
-            if (post.getParent() == null || post.getParent() == 0) {
-                parentID = 0;
-            } else {
-                try {
-                    parentID = this.getParent(thread.getId(), post.getParent());
-                } catch (DataAccessException exception) {
-                    throw new DuplicateKeyException("NO_PARENTS");
-                }
-            }
-
-            Array path = null;
-            post.setThread(thread.getId());
-            post.setForum(forumSlug);
-            post.setCreated(currentTime);
-
-            final Integer generatedID =
-                jdbcTemplate.queryForObject("SELECT nextval(pg_get_serial_sequence('posts', 'id'))", Integer.class);
-            Integer rootID;
-
-            if (parentID != 0) {
-                path = this.getPathById(parentID);
-                try {
-                    rootID = ((Integer[]) path.getArray())[0];
-                } catch (SQLException error) {
-                    rootID = generatedID;
-                }
-            } else {
-                rootID = generatedID;
-            }
-
-            post.setId(generatedID);
-            post.setParent(parentID);
-            Integer userID = userService.getIdByName(post.getAuthor());
-
-            jdbcTemplate.update(sql, generatedID, userID, currentTime, forumID,
-                post.getMessage(), parentID, thread.getId(), path, generatedID, rootID);
-
-            forumService.incrementPosts(forumID);
-        }
-        return posts;
-    }
-
-
     public void create2(List<PostModel> posts) {
         final String sql =
             "INSERT INTO posts (id, user_id, created, forum_id, message, parent, thread_id, path, root_id)" +
@@ -144,13 +79,25 @@ public class PostService {
                 pst.setInt(9, postId);
                 pst.setInt(10, rootId);
             }
-
             @Override
             public int getBatchSize() {
                 return posts.size();
             }
         });
 
+        final String sqlForumUsers = "INSERT INTO forum_users (user_id, forum_id) VALUES (?, ?) ON CONFLICT (user_id, forum_id) DO NOTHING";
+
+        jdbcTemplate.batchUpdate(sqlForumUsers, new BatchPreparedStatementSetter() {
+            @Override
+            public void setValues(PreparedStatement pst, int i) throws SQLException {
+                pst.setInt(1, posts.get(i).getAuthorId());
+                pst.setInt(2, posts.get(i).getForumId());
+            }
+            @Override
+            public int getBatchSize() {
+                return posts.size();
+            }
+        });
         forumService.increasePostsAmount(posts.get(0).getForumId(), posts.size());
     }
 

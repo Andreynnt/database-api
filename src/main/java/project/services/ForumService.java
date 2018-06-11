@@ -78,7 +78,7 @@ public class ForumService {
     }
 
 
-    public List<UserModel> getUsers(String slug, Integer limit, String since, Boolean desc) {
+    public List<UserModel> getUsersOldVersion(String slug, Integer limit, String since, Boolean desc) {
         Integer forumID = getIdBySLug(slug);
         List<Object> args = new ArrayList<>();
         String sql =
@@ -127,7 +127,7 @@ public class ForumService {
     }
 
     public Integer getIdBySlug(String slug) {
-        String sql = "SELECT id FROM forums WHERE slug = ?";
+        String sql = "SELECT id FROM forums WHERE slug = ?::citext";
         return jdbcTemplate.queryForObject(sql, Integer.class, slug);
     }
 
@@ -140,4 +140,38 @@ public class ForumService {
         final String sqlUpdatePostCount = "UPDATE forums SET posts = posts + ? WHERE id = ?";
         jdbcTemplate.update(sqlUpdatePostCount, size, forumID);
     }
+
+
+    public List<UserModel> getUsers(String slug, String since, Boolean desc, Integer limit) {
+        final Integer forumId = getIdBySlug(slug);
+        final List<Object> params = new ArrayList<>();
+        params.add(forumId);
+
+        String sql =
+            "SELECT u.nickname, u.fullname, u.email, u.about FROM users u WHERE u.id IN " +
+            "(SELECT user_id FROM forum_users WHERE forum_id = ?)";
+
+        if (since != null) {
+            sql += " AND u.nickname ";
+            if ( desc != null && desc.equals(Boolean.TRUE)) {
+                sql += " < ?::citext ";
+            } else {
+                sql += " > ?::citext ";
+            }
+            params.add(since);
+        }
+        sql += " ORDER BY u.nickname ";
+        if (desc != null) {
+            if (desc.equals(Boolean.TRUE)) {
+                sql += " DESC ";
+            }
+        }
+
+        if (limit != null) {
+            sql +=" LIMIT ? ";
+            params.add(limit);
+        }
+        return jdbcTemplate.query(sql, UserModel::getUser, params.toArray());
+    }
 }
+

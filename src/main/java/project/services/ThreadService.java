@@ -7,45 +7,78 @@ import project.models.ThreadModel;
 import project.models.VoteModel;
 
 import java.util.ArrayList;
+import java.util.List;
 
 
 @Service
 public class ThreadService {
 
     private JdbcTemplate jdbcTemplate;
+    private UserService userService;
+    private ForumService forumService;
 
-
-    public ThreadService(JdbcTemplate jdbcTemplate) {
+    public ThreadService(JdbcTemplate jdbcTemplate, UserService userService, ForumService forumService) {
         this.jdbcTemplate = jdbcTemplate;
+        this.userService = userService;
+        this.forumService = forumService;
     }
 
-    public ThreadModel create(ThreadModel thread, String forumSlug) {
+    public ThreadModel create2(ThreadModel thread, String forumSlug) {
         String sql = "INSERT INTO threads(message, slug, title";
-
         ArrayList<String> values = new ArrayList<>();
         values.add(thread.getMessage());
         values.add(thread.getSlug());
         values.add(thread.getTitle());
-
         if (thread.getCreated() != null) {
             sql += ", created ";
         }
-
         sql += ", author_id, forum_id";
         sql += ") VALUES(?, ?::citext, ?, ";
-
-        // не работает, если пихать время создания
-
         if (thread.getCreated() != null) {
             sql += "?::TIMESTAMPTZ, ";
             values.add(thread.getCreated());
         }
-
         sql += ("(SELECT id FROM users WHERE nickname = \'" + thread.getAuthor() + "\') , ");
         sql += ("(SELECT id FROM forums WHERE slug = \'" + forumSlug + "\')) RETURNING id");
-
         Integer newId = jdbcTemplate.queryForObject(sql, Integer.class, values.toArray());
         return getFullById(newId);
+    }
+
+    public ThreadModel create(ThreadModel thread, String forumSlug) {
+        final StringBuilder sqlCreate = new StringBuilder();
+        final List<Object> params = new ArrayList<>();
+        final Integer userId = userService.getIdByName(thread.getAuthor());
+        final Integer forumID = forumService.getIdBySlug(forumSlug);
+
+        sqlCreate.append("INSERT INTO threads (author_id, ");
+        params.add(userId);
+
+        if (thread.getCreated() != null) {
+            sqlCreate.append("created, ");
+            params.add(thread.getCreated());
+        }
+
+        sqlCreate.append("forum_id, slug, message, title) VALUES(?, ");
+        if (thread.getCreated() != null) {
+            sqlCreate.append("?::TIMESTAMPTZ, ");
+        }
+
+        sqlCreate.append("?, ?::citext, ?, ?) RETURNING id");
+        params.add(forumID);
+        params.add(thread.getSlug());
+        params.add(thread.getMessage());
+        params.add(thread.getTitle());
+
+        final Integer id = jdbcTemplate.queryForObject(sqlCreate.toString(), Integer.class, params.toArray());
+        incrementThreadCount(forumSlug);
+        updateForumUsers(userId, forumID);
+        return getFullById(id);
+    }
+
+    private void updateForumUsers(Integer userId, Integer forumId) {
+        final String sql =
+            "INSERT INTO forum_users(user_id, forum_id) VALUES (?, ?) ON CONFLICT (user_id, forum_id) DO NOTHING";
+        jdbcTemplate.update(sql, userId, forumId);
     }
 
     public ThreadModel getThread(ThreadModel thread, String forumSlug) {
@@ -89,11 +122,6 @@ public class ThreadService {
         return thread;
     }
 
-    public void incrementForumThreads(String slug) {
-        String sql = "UPDATE forums SET threads = threads + 1 WHERE slug = ?";
-        jdbcTemplate.update(sql, slug);
-    }
-
 
     public ThreadModel getById(Integer id) {
         String sql = "SELECT * FROM threads WHERE id = ?";
@@ -106,13 +134,13 @@ public class ThreadService {
     }
 
 
-    public ThreadModel getFullById(Integer id) {
-        final String sql =
-                "SELECT *, " +
-                "(SELECT slug FROM forums f WHERE t.forum_id = f.id) as forum, " +
-                "(SELECT nickname FROM users u WHERE t.author_id = u.id) as author FROM threads t WHERE id = ?";
-        return jdbcTemplate.queryForObject(sql, ThreadModel::getThread, id);
-    }
+//    public ThreadModel getFullById(Integer id) {
+//        final String sql =
+//                "SELECT *, " +
+//                "(SELECT slug FROM forums f WHERE t.forum_id = f.id) as forum, " +
+//                "(SELECT nickname FROM users u WHERE t.author_id = u.id) as author FROM threads t WHERE id = ?";
+//        return jdbcTemplate.queryForObject(sql, ThreadModel::getThread, id);
+//    }
 
 
     public ThreadModel getFullBySlug(String slug) {
@@ -209,5 +237,21 @@ public class ThreadService {
     public Integer gerForumIdByThreadID(Integer threadId) {
         String sql = "SELECT forum_id FROM threads WHERE id = ?";
         return jdbcTemplate.queryForObject(sql, Integer.class, threadId);
+    }
+
+    public void incrementThreadCount(String slug) {
+        final String sqlUpdateThreadCount =
+            "UPDATE forums SET threads = threads + 1 WHERE slug = ?::citext";
+        jdbcTemplate.update(sqlUpdateThreadCount, slug);
+    }
+
+    public ThreadModel getFullById(Integer id) {
+        final String sqlGetThreadById = "SELECT *, (SELECT nickname FROM users WHERE threads.author_id = id) as author," +
+                " (SELECT slug FROM forums WHERE threads.forum_id = id) as forum FROM Threads where id = ?";
+        try {
+            return jdbcTemplate.queryForObject(sqlGetThreadById, ThreadModel::getThread, id);
+        } catch (DataAccessException ex) {
+            return getFullBySlug(id.toString());
+        }
     }
 }
