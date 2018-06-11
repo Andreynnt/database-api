@@ -50,9 +50,10 @@ public class PostService {
 
     @Transactional(rollbackFor = Exception.class)
     public List<PostModel> create(List<PostModel> posts, String slug_or_id) {
-        final String sql = "INSERT INTO posts (id, user_id, created, forum_id, message," +
-                " parent, thread_id, path, root_id)" +
-                " VALUES(?, ?, ?::TIMESTAMPTZ, ?, ?, ?, ?, array_append(?, ?::INTEGER), ?)";
+        final String sql =
+            "INSERT INTO posts (id, user_id, created, forum_id, message," +
+            " parent, thread_id, path, root_id)" +
+            " VALUES(?, ?, ?::TIMESTAMPTZ, ?, ?, ?, ?, array_append(?, ?::INTEGER), ?)";
 
         final ThreadModel thread;
         if (slug_or_id.matches("\\d+")) {
@@ -359,8 +360,8 @@ public class PostService {
 
         String sql =
             " SELECT p.created, p.id, p.message, p.parent, " +
-            " u.nickname as author, p.is_edited as isEdited, p.thread_id as thread, f.slug as forum" +
-            " FROM posts p JOIN users u ON p.user_id = u.id JOIN forums f on p.forum_id = f.id " +
+            " u.nickname AS author, p.is_edited AS isEdited, p.thread_id AS thread, f.slug AS forum" +
+            " FROM posts p JOIN users u ON p.user_id = u.id JOIN forums f ON p.forum_id = f.id " +
             " WHERE p.root_id IN ";
         sql += rootsSqlArray;
 

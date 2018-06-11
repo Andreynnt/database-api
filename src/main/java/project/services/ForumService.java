@@ -82,39 +82,39 @@ public class ForumService {
         Integer forumID = getIdBySLug(slug);
         List<Object> args = new ArrayList<>();
         String sql =
-            "select distinct u.nickname, u.about, u.email, u.fullname " +
-            "from users u join posts p on p.user_id = u.id and p.forum_id = ? ";
+            "SELECT DISTINCT u.nickname, u.about, u.email, u.fullname " +
+            "FROM users u JOIN posts p ON p.user_id = u.id AND p.forum_id = ? ";
         args.add(forumID);
 
         if (since != null) {
             if (desc != null && desc) {
-                sql += " and nickname < ?::citext ";
+                sql += " AND nickname < ?::citext ";
             } else {
                 //если нет desc то у меня сортировка по убыванию
-                sql += " and nickname > ?::citext ";
+                sql += " AND nickname > ?::citext ";
             }
             args.add(since);
         }
 
-        sql += " union ";
-        sql += " select distinct users.nickname,  users.about, users.email, users.fullname FROM users  join threads th on th.author_id = users.id  and th.forum_id = ?";
+        sql += " UNION ";
+        sql += " SELECT DISTINCT users.nickname,  users.about, users.email, users.fullname FROM users JOIN threads th ON th.author_id = users.id AND th.forum_id = ?";
         args.add(forumID);
 
         if (since != null) {
             if (desc != null && desc) {
-                sql += " and nickname < ?::citext ";
+                sql += " AND nickname < ?::citext ";
             } else {
                 //если нет desc то у меня сортировка по убыванию
-                sql += "  and nickname > ?::citext ";
+                sql += "  AND nickname > ?::citext ";
             }
             args.add(since);
         }
-        sql += " order by nickname";
+        sql += " ORDER BY nickname";
         if (desc != null && desc != false) {
-            sql += " desc ";
+            sql += " DESC ";
         }
         if (limit != null) {
-            sql += " limit ? ";
+            sql += " LIMIT ? ";
             args.add(limit);
         }
         return jdbcTemplate.query(sql, UserModel::getUser, args.toArray());
