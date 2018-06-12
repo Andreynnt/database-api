@@ -55,7 +55,7 @@ public class ThreadController {
     public ResponseEntity createPost(@RequestBody List<PostModel> posts, @PathVariable String slug_or_id) {
         final ThreadModel thread;
         try {
-            thread = threadService.getFullBySlugOrId(slug_or_id);
+            thread = threadService.getFullByIdentificator(slug_or_id);
         } catch (DataAccessException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ErrorModel.getMessage("NO_THREAD"));
         }
@@ -109,7 +109,7 @@ public class ThreadController {
     @GetMapping(value = "/thread/{slug_or_id}/details", produces = "application/json")
     public ResponseEntity getThread(@PathVariable String slug_or_id) {
         try {
-            return ResponseEntity.status(HttpStatus.OK).body(threadService.getFullBySlugOrId(slug_or_id));
+            return ResponseEntity.status(HttpStatus.OK).body(threadService.getFullByIdentificator(slug_or_id));
         } catch (DataAccessException exception) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ErrorModel.getMessage("NO_THREAD"));
         }
