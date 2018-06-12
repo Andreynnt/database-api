@@ -25,7 +25,7 @@ public class UserController {
     public ResponseEntity createUser(@PathVariable String nickname, @RequestBody UserModel user) {
         user.setNickname(nickname);
         try {
-            this.userService.create(user);
+            this.userService.createUser(user);
         } catch (DuplicateKeyException exception) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(userService.getSameUsers(user));
         }

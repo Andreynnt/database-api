@@ -37,12 +37,12 @@ public class ForumService {
 
     private String addParamsForGetThreads(String sql, ArrayList<Object> queryParams, Integer limit, String since, Boolean desc) {
         if (since != null) {
+            queryParams.add(since);
             if (desc != null && desc) {
                 sql += (" AND created <= ?::TIMESTAMPTZ ");
             } else {
                 sql += (" AND created >= ?::TIMESTAMPTZ ");
             }
-            queryParams.add(since);
         }
 
         if (desc != null && desc) {
@@ -53,12 +53,11 @@ public class ForumService {
         }
 
         if (limit != null) {
-            sql += " LIMIT ?";
             queryParams.add(limit);
+            sql += " LIMIT ?";
         }
         return sql;
     }
-
 
     public List<ThreadModel> getThreads(String slug, Integer limit, String since, Boolean desc) {
         ArrayList<Object> queryParams = new ArrayList<>();
@@ -72,55 +71,6 @@ public class ForumService {
         return jdbcTemplate.query(sql, ThreadModel::getThread, queryParams.toArray());
     }
 
-
-    private Integer getIdBySLug(String slug) {
-        return jdbcTemplate.queryForObject("SELECT id FROM forums f WHERE f.slug = ?::citext", Integer.class, slug);
-    }
-
-
-    public List<UserModel> getUsersOldVersion(String slug, Integer limit, String since, Boolean desc) {
-        Integer forumID = getIdBySLug(slug);
-        List<Object> args = new ArrayList<>();
-        String sql =
-            "SELECT DISTINCT u.nickname, u.about, u.email, u.fullname " +
-            "FROM users u JOIN posts p ON p.user_id = u.id AND p.forum_id = ? ";
-        args.add(forumID);
-
-        if (since != null) {
-            if (desc != null && desc) {
-                sql += " AND nickname < ?::citext ";
-            } else {
-                //если нет desc то у меня сортировка по убыванию
-                sql += " AND nickname > ?::citext ";
-            }
-            args.add(since);
-        }
-
-        sql += " UNION ";
-        sql += " SELECT DISTINCT users.nickname,  users.about, users.email, users.fullname FROM users JOIN threads th ON th.author_id = users.id AND th.forum_id = ?";
-        args.add(forumID);
-
-        if (since != null) {
-            if (desc != null && desc) {
-                sql += " AND nickname < ?::citext ";
-            } else {
-                //если нет desc то у меня сортировка по убыванию
-                sql += "  AND nickname > ?::citext ";
-            }
-            args.add(since);
-        }
-        sql += " ORDER BY nickname";
-        if (desc != null && desc != false) {
-            sql += " DESC ";
-        }
-        if (limit != null) {
-            sql += " LIMIT ? ";
-            args.add(limit);
-        }
-        return jdbcTemplate.query(sql, UserModel::getUser, args.toArray());
-    }
-
-
     public String getSlugById(Integer id) {
         String sql = "SELECT slug FROM forums WHERE id = ?";
         return jdbcTemplate.queryForObject(sql, String.class, id);
@@ -131,16 +81,10 @@ public class ForumService {
         return jdbcTemplate.queryForObject(sql, Integer.class, slug);
     }
 
-    public void incrementPosts(Integer forumID) {
-        final String sqlUpdatePostCount = "UPDATE forums SET posts = posts + 1 WHERE id = ?";
-        jdbcTemplate.update(sqlUpdatePostCount, forumID);
-    }
-
     public void increasePostsAmount(Integer forumID, Integer size) {
         final String sqlUpdatePostCount = "UPDATE forums SET posts = posts + ? WHERE id = ?";
         jdbcTemplate.update(sqlUpdatePostCount, size, forumID);
     }
-
 
     public List<UserModel> getUsers(String slug, String since, Boolean desc, Integer limit) {
         final Integer forumId = getIdBySlug(slug);
@@ -152,13 +96,13 @@ public class ForumService {
             "(SELECT user_id FROM forum_users WHERE forum_id = ?)";
 
         if (since != null) {
+            params.add(since);
             sql += " AND u.nickname ";
             if ( desc != null && desc.equals(Boolean.TRUE)) {
                 sql += " < ?::citext ";
             } else {
                 sql += " > ?::citext ";
             }
-            params.add(since);
         }
         sql += " ORDER BY u.nickname ";
         if (desc != null) {
@@ -168,8 +112,8 @@ public class ForumService {
         }
 
         if (limit != null) {
-            sql +=" LIMIT ? ";
             params.add(limit);
+            sql +=" LIMIT ? ";
         }
         return jdbcTemplate.query(sql, UserModel::getUser, params.toArray());
     }

@@ -36,16 +36,9 @@ public class PostService {
         this.userService = userService;
     }
 
-
-
     public Integer getParent(Integer threadID, Integer parentID) {
         String sql = "SELECT id FROM posts WHERE thread_id = ? AND id = ?";
         return jdbcTemplate.queryForObject(sql, Integer.class, threadID, parentID);
-    }
-
-    private Array getPathById(Integer id) {
-        String sql = "SELECT path FROM posts WHERE id = ?";
-        return  jdbcTemplate.queryForObject(sql, Array.class, id);
     }
 
     public void create2(List<PostModel> posts) {
@@ -85,7 +78,8 @@ public class PostService {
             }
         });
 
-        final String sqlForumUsers = "INSERT INTO forum_users (user_id, forum_id) VALUES (?, ?) ON CONFLICT (user_id, forum_id) DO NOTHING";
+        final String sqlForumUsers
+            = "INSERT INTO forum_users (user_id, forum_id) VALUES (?, ?) ON CONFLICT (user_id, forum_id) DO NOTHING";
 
         jdbcTemplate.batchUpdate(sqlForumUsers, new BatchPreparedStatementSetter() {
             @Override
@@ -101,12 +95,9 @@ public class PostService {
         forumService.increasePostsAmount(posts.get(0).getForumId(), posts.size());
     }
 
-
     private String getPostMessage(Integer id) {
-        final String sql = "SELECT message FROM posts WHERE id = ?";
-        return jdbcTemplate.queryForObject(sql, String.class, id);
+        return jdbcTemplate.queryForObject(  "SELECT message FROM posts WHERE id = ?", String.class, id);
     }
-
 
     private PostModel getPost(Integer id) {
         final String sql =
@@ -121,15 +112,12 @@ public class PostService {
     public PostModel updatePost(PostModel post, Integer id) {
         final String oldMessage = this.getPostMessage(id);
         final String sql = "UPDATE posts SET is_edited = TRUE, message = ? WHERE id = ?";
-
         if (post.getMessage() == null) {
            return getPost(id);
         }
-
         if (post.getMessage().equals(oldMessage)) {
             return getPost(id);
         }
-
         jdbcTemplate.update(sql, post.getMessage(), id);
         return this.getPost(id);
     }
@@ -164,7 +152,6 @@ public class PostService {
 
 
     public List<PostModel> getSortedPosts(String slugOrId, Integer limit, Integer since, String sort, Boolean desc) {
-
         if (sort == null || sort.equals("flat")) {
             return this.flatSort(slugOrId, limit, since, desc);
         }
@@ -197,12 +184,12 @@ public class PostService {
         String sql = getCarcassStringForSort(slugOrId, queryParams);
 
         if (since != null) {
+            queryParams.add(since);
             if (desc != null && desc) {
                 sql += " AND p.id < ? ";
             } else {
                 sql += " AND p.id > ? ";
             }
-            queryParams.add(since);
         }
 
         if (desc != null && desc) {
@@ -213,15 +200,14 @@ public class PostService {
         }
 
         if (limit != null) {
-            sql += " LIMIT ?";
             queryParams.add(limit);
+            sql += " LIMIT ?";
         }
         return jdbcTemplate.query(sql, PostModel::getPost, queryParams.toArray());
     }
 
     public Integer getNextPostId() {
-        final String sqlGetNext = "SELECT nextval(pg_get_serial_sequence('posts', 'id'))";
-        return jdbcTemplate.queryForObject(sqlGetNext, Integer.class);
+        return jdbcTemplate.queryForObject("SELECT nextval(pg_get_serial_sequence('posts', 'id'))", Integer.class);
     }
 
     private List<PostModel> treeSort(String slugOrId, Integer limit, Integer since, Boolean desc) {
@@ -245,8 +231,8 @@ public class PostService {
         }
 
         if (limit != null) {
-            sql += " LIMIT ?";
             queryParams.add(limit);
+            sql += " LIMIT ?";
         }
         return jdbcTemplate.query(sql, PostModel::getPost, queryParams.toArray());
     }
@@ -254,16 +240,16 @@ public class PostService {
 
     private String getRootsId(Integer threadId, Integer limit, Integer since, Boolean desc) {
         final ArrayList<Object> queryParams = new ArrayList<>();
-        String sql = "SELECT id FROM posts WHERE thread_id = ? AND parent = 0 ";
         queryParams.add(threadId);
+        String sql = "SELECT id FROM posts WHERE thread_id = ? AND parent = 0 ";
 
         if (since != null) {
+            queryParams.add(since);
             if (desc != null && desc) {
                 sql += " AND id < (SELECT root_id FROM posts WHERE id = ?) ";
             } else {
                 sql += " AND id > (SELECT root_id FROM posts WHERE id = ?) ";
             }
-            queryParams.add(since);
         }
 
         if (desc != null && desc) {
@@ -274,8 +260,8 @@ public class PostService {
         }
 
         if (limit != null) {
-            sql += " LIMIT ? ";
             queryParams.add(limit);
+            sql += " LIMIT ? ";
         }
 
         final List<Integer> roots = jdbcTemplate.queryForList(sql, Integer.class, queryParams.toArray());
@@ -292,7 +278,6 @@ public class PostService {
         } else {
             return null;
         }
-
         return sqlRoots.toString();
     }
 
@@ -320,5 +305,4 @@ public class PostService {
         }
         return jdbcTemplate.query(sql, PostModel::getPost);
     }
-
 }

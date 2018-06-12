@@ -45,7 +45,6 @@ public class ForumController {
                                   @RequestParam(value = "desc", required = false) Boolean desc) {
             try {
                 List<ThreadModel> threads = forumsService.getThreads(slug, limit, since, desc);
-                //todo убрать эту проверку
                 if (threads.isEmpty()) {
                     forumsService.getForumBySlug(slug);
                 }

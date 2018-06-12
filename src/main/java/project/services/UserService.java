@@ -12,17 +12,13 @@ public class UserService {
 
     private JdbcTemplate jdbcTemplate;
 
-
     public UserService(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-
-    //todo неправильно
-    public UserModel create(UserModel user) {
-        final String sql =
-            "INSERT INTO users (fullname, about, nickname, email) VALUES (?, ?, ?::citext, ?::citext)";
-        jdbcTemplate.update(sql, user.getFullname(), user.getAbout(), user.getNickname(), user.getEmail());
+    public UserModel createUser(UserModel user) {
+        jdbcTemplate.update("INSERT INTO users (fullname, about, email,  nickname) VALUES (?, ?, ?::citext, ?::citext)",
+                user.getFullname(), user.getAbout(), user.getEmail(), user.getNickname());
         return user;
     }
 
@@ -81,8 +77,7 @@ public class UserService {
     }
 
     public Integer getIdByName(String name) {
-        String sql = "SELECT id FROM users WHERE nickname = ?::citext";
-        return jdbcTemplate.queryForObject(sql, Integer.class, name);
+        return jdbcTemplate.queryForObject("SELECT id FROM users WHERE nickname = ?::citext", Integer.class, name);
     }
 
 }
